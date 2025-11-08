@@ -1,48 +1,53 @@
 """
-Database Schemas
+Database Schemas for TripMind
 
-Define your MongoDB collection schemas here using Pydantic models.
-These schemas are used for data validation in your application.
-
+Define MongoDB collection schemas here using Pydantic models.
 Each Pydantic model represents a collection in your database.
 Model name is converted to lowercase for the collection name:
-- User -> "user" collection
-- Product -> "product" collection
-- BlogPost -> "blogs" collection
+- Preference -> "preference"
+- Trip -> "trip"
 """
 
-from pydantic import BaseModel, Field
-from typing import Optional
+from pydantic import BaseModel, Field, EmailStr
+from typing import Optional, List, Literal
+from datetime import datetime
 
-# Example schemas (replace with your own):
 
-class User(BaseModel):
+class Preference(BaseModel):
     """
-    Users collection schema
-    Collection name: "user" (lowercase of class name)
+    User travel preferences
+    Collection name: "preference"
     """
-    name: str = Field(..., description="Full name")
-    email: str = Field(..., description="Email address")
-    address: str = Field(..., description="Address")
-    age: Optional[int] = Field(None, ge=0, le=120, description="Age in years")
-    is_active: bool = Field(True, description="Whether user is active")
+    user_id: str = Field(..., description="Application user identifier")
+    budget: Optional[float] = Field(None, ge=0, description="Typical max budget per trip")
+    favorite_modes: Optional[List[Literal['cab', 'metro', 'bus', 'train', 'auto', 'flight']]] = Field(
+        default=None, description="Preferred transport modes"
+    )
+    favorite_providers: Optional[List[str]] = Field(default=None, description="Preferred providers like Uber, Ola")
+    time_windows: Optional[List[str]] = Field(
+        default=None, description="Preferred time windows e.g. '08:00-10:00'"
+    )
+    home: Optional[str] = Field(None, description="Saved home location text")
+    work: Optional[str] = Field(None, description="Saved work location text")
+    notes: Optional[str] = Field(None, description="Additional user notes")
 
-class Product(BaseModel):
+
+class Trip(BaseModel):
     """
-    Products collection schema
-    Collection name: "product" (lowercase of class name)
+    Booked trip document
+    Collection name: "trip"
     """
-    title: str = Field(..., description="Product title")
-    description: Optional[str] = Field(None, description="Product description")
-    price: float = Field(..., ge=0, description="Price in dollars")
-    category: str = Field(..., description="Product category")
-    in_stock: bool = Field(True, description="Whether product is in stock")
-
-# Add your own schemas here:
-# --------------------------------------------------
-
-# Note: The Flames database viewer will automatically:
-# 1. Read these schemas from GET /schema endpoint
-# 2. Use them for document validation when creating/editing
-# 3. Handle all database operations (CRUD) directly
-# 4. You don't need to create any database endpoints!
+    user_id: str = Field(..., description="Application user identifier")
+    query: str = Field(..., description="Original natural-language query")
+    origin: Optional[str] = Field(None, description="Origin location text")
+    destination: Optional[str] = Field(None, description="Destination location text")
+    mode: str = Field(..., description="Primary mode, e.g., cab, metro, train")
+    provider: str = Field(..., description="Provider such as Uber, Ola, Rapido")
+    price: float = Field(..., ge=0, description="Estimated or booked price")
+    currency: str = Field('INR', description="Currency code")
+    duration_minutes: int = Field(..., ge=0, description="Estimated duration in minutes")
+    eta: Optional[str] = Field(None, description="Estimated arrival time text")
+    departure_time: Optional[datetime] = Field(None, description="Scheduled departure time")
+    return_trip: Optional[bool] = Field(False, description="Whether includes a return leg")
+    status: Literal['pending', 'confirmed', 'cancelled', 'completed'] = Field('confirmed')
+    legs: Optional[List[dict]] = Field(default=None, description="Multi-modal legs if applicable")
